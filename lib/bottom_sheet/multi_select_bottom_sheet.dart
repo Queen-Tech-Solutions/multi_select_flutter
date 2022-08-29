@@ -2,27 +2,28 @@ import 'package:flutter/material.dart';
 import '../util/multi_select_item.dart';
 import '../util/multi_select_actions.dart';
 import '../util/multi_select_list_type.dart';
+import 'package:flutter_svg/svg.dart';
 
 /// A bottom sheet widget containing either a classic checkbox style list, or a chip style list.
-class MultiSelectBottomSheet<T> extends StatefulWidget
-    with MultiSelectActions<T> {
+class MultiSelectBottomSheet<V> extends StatefulWidget
+    with MultiSelectActions<V> {
   /// List of items to select from.
-  final List<MultiSelectItem<T>> items;
+  final List<MultiSelectItem<V>> items;
 
   /// The list of selected values before interaction.
-  final List<T> initialValue;
+  final List<V>? initialValue;
 
   /// The text at the top of the BottomSheet.
   final Widget? title;
 
   /// Fires when the an item is selected / unselected.
-  final void Function(List<T>)? onSelectionChanged;
+  final void Function(List<V>)? onSelectionChanged;
 
   /// Fires when confirm is tapped.
-  final void Function(List<T>)? onConfirm;
+  final void Function(List<V>)? onConfirm;
 
   /// Toggles search functionality.
-  final bool searchable;
+  final bool? searchable;
 
   /// Text on the confirm button.
   final Text? confirmText;
@@ -47,10 +48,11 @@ class MultiSelectBottomSheet<T> extends StatefulWidget
 
   /// Set the placeholder text of the search field.
   final String? searchHint;
+  final String? confirmHint;
 
   /// A function that sets the color of selected items based on their value.
   /// It will either set the chip color, or the checkbox color depending on the list type.
-  final Color? Function(T)? colorator;
+  final Color? Function(V)? colorator;
 
   /// Color of the chip body or checkbox border while not selected.
   final Color? unselectedColor;
@@ -73,9 +75,6 @@ class MultiSelectBottomSheet<T> extends StatefulWidget
   /// Style the search hint.
   final TextStyle? searchHintStyle;
 
-  /// Moves the selected items to the top of the list.
-  final bool separateSelectedItems;
-
   /// Set the color of the check in the checkbox
   final Color? checkColor;
 
@@ -88,7 +87,8 @@ class MultiSelectBottomSheet<T> extends StatefulWidget
     this.listType,
     this.cancelText,
     this.confirmText,
-    this.searchable = false,
+    this.confirmHint = "need to add text",
+    this.searchable,
     this.selectedColor,
     this.initialChildSize,
     this.minChildSize,
@@ -102,70 +102,61 @@ class MultiSelectBottomSheet<T> extends StatefulWidget
     this.searchHint,
     this.searchHintStyle,
     this.selectedItemsTextStyle,
-    this.separateSelectedItems = false,
     this.checkColor,
   });
 
   @override
-  _MultiSelectBottomSheetState<T> createState() =>
-      _MultiSelectBottomSheetState<T>(items);
+  _MultiSelectBottomSheetState<V> createState() =>
+      _MultiSelectBottomSheetState<V>(items);
 }
 
-class _MultiSelectBottomSheetState<T> extends State<MultiSelectBottomSheet<T>> {
-  List<T> _selectedValues = [];
+class _MultiSelectBottomSheetState<V> extends State<MultiSelectBottomSheet<V>> {
+  List<V> _selectedValues = [];
   bool _showSearch = false;
-  List<MultiSelectItem<T>> _items;
+  List<MultiSelectItem<V>> _items;
 
   _MultiSelectBottomSheetState(this._items);
 
-  @override
   void initState() {
     super.initState();
-    _selectedValues.addAll(widget.initialValue);
-
-    for (int i = 0; i < _items.length; i++) {
-      if (_selectedValues.contains(_items[i].value)) {
-        _items[i].selected = true;
-      }
-    }
-
-    if (widget.separateSelectedItems) {
-      _items = widget.separateSelected(_items);
+    if (widget.initialValue != null) {
+      _selectedValues.addAll(widget.initialValue!);
     }
   }
 
   /// Returns a CheckboxListTile
-  Widget _buildListItem(MultiSelectItem<T> item) {
+
+  Widget _buildListItem(MultiSelectItem<V> item) {
     return Theme(
       data: ThemeData(
         unselectedWidgetColor: widget.unselectedColor ?? Colors.black54,
+        accentColor: widget.selectedColor ?? Theme.of(context).primaryColor,
       ),
       child: CheckboxListTile(
         checkColor: widget.checkColor,
-        value: item.selected,
+        value: _selectedValues.contains(item.value),
         activeColor: widget.colorator != null
             ? widget.colorator!(item.value) ?? widget.selectedColor
             : widget.selectedColor,
-        title: Text(
-          item.label,
-          style: item.selected
-              ? widget.selectedItemsTextStyle
-              : widget.itemsTextStyle,
+        title: Row(
+          children: [
+            Text(item.image),
+            SizedBox(
+              width: 5,
+            ),
+            Text(
+              item.label,
+              style: _selectedValues.contains(item.value)
+                  ? widget.selectedItemsTextStyle
+                  : widget.itemsTextStyle,
+            ),
+          ],
         ),
         controlAffinity: ListTileControlAffinity.leading,
         onChanged: (checked) {
           setState(() {
             _selectedValues = widget.onItemCheckedChange(
                 _selectedValues, item.value, checked!);
-
-            if (checked) {
-              item.selected = true;
-            } else {
-              item.selected = false;
-            }
-            if (widget.separateSelectedItems) {
-              _items = widget.separateSelected(_items);
-            }
           });
           if (widget.onSelectionChanged != null) {
             widget.onSelectionChanged!(_selectedValues);
@@ -176,7 +167,7 @@ class _MultiSelectBottomSheetState<T> extends State<MultiSelectBottomSheet<T>> {
   }
 
   /// Returns a ChoiceChip
-  Widget _buildChipItem(MultiSelectItem<T> item) {
+  Widget _buildChipItem(MultiSelectItem<V> item) {
     return Container(
       padding: const EdgeInsets.all(2.0),
       child: ChoiceChip(
@@ -191,23 +182,28 @@ class _MultiSelectBottomSheetState<T> extends State<MultiSelectBottomSheet<T>> {
           item.label,
           style: _selectedValues.contains(item.value)
               ? TextStyle(
-                  color: widget.selectedItemsTextStyle?.color ??
-                      widget.colorator?.call(item.value) ??
-                      widget.selectedColor?.withOpacity(1) ??
-                      Theme.of(context).primaryColor,
+                  color: widget.colorator != null &&
+                          widget.colorator!(item.value) != null
+                      ? widget.selectedItemsTextStyle != null
+                          ? widget.selectedItemsTextStyle!.color ??
+                              widget.colorator!(item.value)!.withOpacity(1)
+                          : widget.colorator!(item.value)!.withOpacity(1)
+                      : widget.selectedItemsTextStyle != null
+                          ? widget.selectedItemsTextStyle!.color ??
+                              (widget.selectedColor != null
+                                  ? widget.selectedColor!.withOpacity(1)
+                                  : Theme.of(context).primaryColor)
+                          : widget.selectedColor != null
+                              ? widget.selectedColor!.withOpacity(1)
+                              : null,
                   fontSize: widget.selectedItemsTextStyle != null
                       ? widget.selectedItemsTextStyle!.fontSize
                       : null,
                 )
               : widget.itemsTextStyle,
         ),
-        selected: item.selected,
+        selected: _selectedValues.contains(item.value),
         onSelected: (checked) {
-          if (checked) {
-            item.selected = true;
-          } else {
-            item.selected = false;
-          }
           setState(() {
             _selectedValues = widget.onItemCheckedChange(
                 _selectedValues, item.value, checked);
@@ -222,154 +218,284 @@ class _MultiSelectBottomSheetState<T> extends State<MultiSelectBottomSheet<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: DraggableScrollableSheet(
-        initialChildSize: widget.initialChildSize ?? 0.3,
-        minChildSize: widget.minChildSize ?? 0.3,
-        maxChildSize: widget.maxChildSize ?? 0.6,
-        expand: false,
-        builder: (BuildContext context, ScrollController scrollController) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _showSearch
-                        ? Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.only(left: 10),
-                              child: TextField(
-                                autofocus: true,
-                                style: widget.searchTextStyle,
-                                decoration: InputDecoration(
-                                  hintStyle: widget.searchHintStyle,
-                                  hintText: widget.searchHint ?? "Search",
-                                  focusedBorder: UnderlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: widget.selectedColor ??
-                                            Theme.of(context).primaryColor),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(29.0)),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: ListView(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        children: [
+          SingleChildScrollView(
+            child: Container(
+              height: getWidgetHeight(height: 550, context: context),
+              width: getWidgetWidth(width: 400, context: context),
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(29),
+                  color: Color(0xffFFFFFF)),
+              child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(15.0),
+                                    border: Border.all(
+                                        color: Color(0XFF707070)
+                                            .withOpacity(0.3))),
+                                child: TextField(
+                                  autofocus: false,
+                                  decoration: InputDecoration(
+                                    focusedBorder: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding:
+                                        EdgeInsets.symmetric(vertical: 3),
+                                    prefixIcon: Container(
+                                        margin: EdgeInsets.symmetric(
+                                            horizontal: 10),
+                                        child: SvgPicture.asset(
+                                          "assets/images/search-svgrepo-com.svg",
+                                          color: Color(0XFF707070)
+                                              .withOpacity(0.9),
+                                        )),
+                                    prefixIconConstraints: BoxConstraints(
+                                        maxWidth: 30, maxHeight: 15),
+                                    hintStyle: TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0XFF626262),
+                                    ),
+                                    hintText: widget.searchHint ?? "Search",
                                   ),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _items = widget.updateSearchQuery(
+                                          val, widget.items);
+                                    });
+                                  },
                                 ),
-                                onChanged: (val) {
-                                  List<MultiSelectItem<T>> filteredList = [];
-                                  filteredList = widget.updateSearchQuery(
-                                      val, widget.items);
-                                  setState(() {
-                                    if (widget.separateSelectedItems) {
-                                      _items =
-                                          widget.separateSelected(filteredList);
-                                    } else {
-                                      _items = filteredList;
-                                    }
-                                  });
-                                },
                               ),
                             ),
-                          )
-                        : widget.title ??
-                            Text(
-                              "Select",
-                              style: TextStyle(fontSize: 18),
-                            ),
-                    widget.searchable
-                        ? IconButton(
-                            icon: _showSearch
-                                ? widget.closeSearchIcon ?? Icon(Icons.close)
-                                : widget.searchIcon ?? Icon(Icons.search),
-                            onPressed: () {
-                              setState(() {
-                                _showSearch = !_showSearch;
-                                if (!_showSearch) {
-                                  if (widget.separateSelectedItems) {
-                                    _items =
-                                        widget.separateSelected(widget.items);
-                                  } else {
-                                    _items = widget.items;
-                                  }
-                                }
-                              });
-                            },
-                          )
-                        : Padding(
-                            padding: EdgeInsets.all(15),
-                          ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: widget.listType == null ||
-                        widget.listType == MultiSelectListType.LIST
-                    ? ListView.builder(
-                        controller: scrollController,
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) {
-                          return _buildListItem(_items[index]);
-                        },
-                      )
-                    : SingleChildScrollView(
-                        controller: scrollController,
-                        child: Container(
-                          padding: EdgeInsets.all(10),
-                          child: Wrap(
-                            children: _items.map(_buildChipItem).toList(),
-                          ),
+                          ],
                         ),
                       ),
-              ),
-              Container(
-                padding: EdgeInsets.all(2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () {
-                          widget.onCancelTap(context, widget.initialValue);
-                        },
-                        child: widget.cancelText ??
-                            Text(
-                              "CANCEL",
-                              style: TextStyle(
-                                color: (widget.selectedColor != null &&
-                                        widget.selectedColor !=
-                                            Colors.transparent)
-                                    ? widget.selectedColor!.withOpacity(1)
-                                    : Theme.of(context).primaryColor,
+                      Expanded(
+                          child: ListView.builder(
+                        itemCount: _items.length,
+                        itemBuilder: (context, index) {
+                          return Column(
+                            children: [
+                              _buildListItem(_items[index]),
+                              Divider(
+                                color: Colors.grey.withOpacity(0.6),
+                                thickness: 0.5,
                               ),
-                            ),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () {
-                          widget.onConfirmTap(
-                              context, _selectedValues, widget.onConfirm);
+                            ],
+                          );
                         },
-                        child: widget.confirmText ??
-                            Text(
-                              "OK",
-                              style: TextStyle(
-                                color: (widget.selectedColor != null &&
-                                        widget.selectedColor !=
-                                            Colors.transparent)
-                                    ? widget.selectedColor!.withOpacity(1)
-                                    : Theme.of(context).primaryColor,
-                              ),
-                            ),
-                      ),
-                    ),
+                      )),
+                    ],
+                  )),
+            ),
+          ),
+          SizedBox(
+            height: getWidgetHeight(height: 10, context: context),
+          ),
+          Container(
+            width: getWidgetWidth(width: 343, context: context),
+            height: 40,
+            decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(23.0)),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Color(0XFF1551B7),
+                    Color(0XFF2F77F2),
+                    Color(0XFF2F77F2),
                   ],
+                )),
+            child: ElevatedButton(
+              style: ButtonStyle(
+                elevation: MaterialStateProperty.all<double>(0.0),
+                shape: MaterialStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(23.0),
+                  ),
                 ),
+                backgroundColor: MaterialStateProperty.all(Colors.transparent),
               ),
-            ],
-          );
-        },
+              onPressed: () {
+                widget.onConfirmTap(context, _selectedValues, widget.onConfirm);
+              },
+              child: Text(
+                widget.confirmHint!,
+                textAlign: TextAlign.center,
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
       ),
     );
+    // return Container(
+    //   padding:
+    //       EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+    //   child: DraggableScrollableSheet(
+    //     initialChildSize: widget.initialChildSize ?? 0.3,
+    //     minChildSize: widget.minChildSize ?? 0.3,
+    //     maxChildSize: widget.maxChildSize ?? 0.6,
+    //     expand: false,
+    //     builder: (BuildContext context, ScrollController scrollController) {
+    //       return Column(
+    //         children: [
+    //           Padding(
+    //             padding: const EdgeInsets.all(10),
+    //             child: Row(
+    //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    //               children: [
+    //                 _showSearch
+    //                     ? Expanded(
+    //                         child: Container(
+    //                           padding: EdgeInsets.only(left: 10),
+    //                           child: TextField(
+    //                             autofocus: true,
+    //                             style: widget.searchTextStyle,
+    //                             decoration: InputDecoration(
+    //                               hintStyle: widget.searchHintStyle,
+    //                               hintText: widget.searchHint ?? "Search",
+    //                               focusedBorder: UnderlineInputBorder(
+    //                                 borderSide: BorderSide(
+    //                                     color: widget.selectedColor ??
+    //                                         Theme.of(context).primaryColor),
+    //                               ),
+    //                             ),
+    //                             onChanged: (val) {
+    //                               setState(() {
+    //                                 _items = widget.updateSearchQuery(
+    //                                     val, widget.items);
+    //                               });
+    //                             },
+    //                           ),
+    //                         ),
+    //                       )
+    //                     : widget.title ??
+    //                         Text(
+    //                           "Select",
+    //                           style: TextStyle(fontSize: 18),
+    //                         ),
+    //                 widget.searchable != null && widget.searchable!
+    //                     ? IconButton(
+    //                         icon: _showSearch
+    //                             ? widget.closeSearchIcon ?? Icon(Icons.close)
+    //                             : widget.searchIcon ?? Icon(Icons.search),
+    //                         onPressed: () {
+    //                           setState(() {
+    //                             _showSearch = !_showSearch;
+    //                             if (!_showSearch) _items = widget.items;
+    //                           });
+    //                         },
+    //                       )
+    //                     : Padding(
+    //                         padding: EdgeInsets.all(15),
+    //                       ),
+    //               ],
+    //             ),
+    //           ),
+    //           Expanded(
+    //             child: widget.listType == null ||
+    //                     widget.listType == MultiSelectListType.LIST
+    //                 ? ListView.builder(
+    //                     controller: scrollController,
+    //                     itemCount: _items.length,
+    //                     itemBuilder: (context, index) {
+    //                       return _buildListItem(_items[index]);
+    //                     },
+    //                   )
+    //                 : SingleChildScrollView(
+    //                     controller: scrollController,
+    //                     child: Container(
+    //                       padding: EdgeInsets.all(10),
+    //                       child: Wrap(
+    //                         children: _items.map(_buildChipItem).toList(),
+    //                       ),
+    //                     ),
+    //                   ),
+    //           ),
+    //           Container(
+    //             padding: EdgeInsets.all(2),
+    //             child: Row(
+    //               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    //               children: [
+    //                 Expanded(
+    //                   child: TextButton(
+    //                     onPressed: () {
+    //                       widget.onCancelTap(context, widget.initialValue!);
+    //                     },
+    //                     child: widget.cancelText ??
+    //                         Text(
+    //                           "CANCEL",
+    //                           style: TextStyle(
+    //                             color: (widget.selectedColor != null &&
+    //                                     widget.selectedColor !=
+    //                                         Colors.transparent)
+    //                                 ? widget.selectedColor!.withOpacity(1)
+    //                                 : Theme.of(context).primaryColor,
+    //                           ),
+    //                         ),
+    //                   ),
+    //                 ),
+    //                 SizedBox(width: 10),
+    //                 Expanded(
+    //                   child: TextButton(
+    //                     onPressed: () {
+    //                       widget.onConfirmTap(
+    //                           context, _selectedValues, widget.onConfirm);
+    //                     },
+    //                     child: widget.confirmText ??
+    //                         Text(
+    //                           "OK",
+    //                           style: TextStyle(
+    //                             color: (widget.selectedColor != null &&
+    //                                     widget.selectedColor !=
+    //                                         Colors.transparent)
+    //                                 ? widget.selectedColor!.withOpacity(1)
+    //                                 : Theme.of(context).primaryColor,
+    //                           ),
+    //                         ),
+    //                   ),
+    //                 ),
+    //               ],
+    //             ),
+    //           ),
+    //         ],
+    //       );
+    //     },
+    //   ),
+    // );
   }
+}
+
+/// Get Widget Height
+double getWidgetHeight(
+    {required double height, required BuildContext context}) {
+  double currentHeight = MediaQuery.of(context).size.height * (height / 812);
+  return currentHeight;
+}
+
+/// Get Widget Width
+double getWidgetWidth({required double width, required BuildContext context}) {
+  double currentWidth = MediaQuery.of(context).size.width * (width / 375);
+  return currentWidth;
 }

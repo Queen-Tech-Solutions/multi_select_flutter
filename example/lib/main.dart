@@ -67,7 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Animal(id: 27, name: "Dolphin"),
   ];
   final _items = _animals
-      .map((animal) => MultiSelectItem<Animal>(animal, animal.name))
+      .map((animal) => MultiSelectItem<Animal>(animal, animal.name,"s"))
       .toList();
   //List<Animal> _selectedAnimals = [];
   List<Animal> _selectedAnimals2 = [];
@@ -233,7 +233,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 onConfirm: (val) {
                   _selectedAnimals5 = val;
                 },
-                dialogWidth: MediaQuery.of(context).size.width * 0.7,
                 items: _items,
                 initialValue:
                     _selectedAnimals5, // setting the value of this in initState() to pre-select values.
