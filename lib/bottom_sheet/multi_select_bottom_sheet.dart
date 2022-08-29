@@ -228,8 +228,8 @@ class _MultiSelectBottomSheetState<V> extends State<MultiSelectBottomSheet<V>> {
         children: [
           SingleChildScrollView(
             child: Container(
-              height: getWidgetHeight(height: 550, context: context),
-              width: getWidgetWidth(width: 400, context: context),
+              height: getHeight(height: 550, context: context),
+              width: getWidth(width: 400, context: context),
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(29),
                   color: Color(0xffFFFFFF)),
@@ -309,10 +309,10 @@ class _MultiSelectBottomSheetState<V> extends State<MultiSelectBottomSheet<V>> {
             ),
           ),
           SizedBox(
-            height: getWidgetHeight(height: 10, context: context),
+            height: getHeight(height: 10, context: context),
           ),
           Container(
-            width: getWidgetWidth(width: 343, context: context),
+            width: getWidth(width: 343, context: context),
             height: 40,
             decoration: const BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(23.0)),
@@ -488,14 +488,14 @@ class _MultiSelectBottomSheetState<V> extends State<MultiSelectBottomSheet<V>> {
 }
 
 /// Get Widget Height
-double getWidgetHeight(
+double getHeight(
     {required double height, required BuildContext context}) {
   double currentHeight = MediaQuery.of(context).size.height * (height / 812);
   return currentHeight;
 }
 
 /// Get Widget Width
-double getWidgetWidth({required double width, required BuildContext context}) {
+double getWidth({required double width, required BuildContext context}) {
   double currentWidth = MediaQuery.of(context).size.width * (width / 375);
   return currentWidth;
 }
