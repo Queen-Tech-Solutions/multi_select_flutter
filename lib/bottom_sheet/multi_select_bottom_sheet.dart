@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../util/multi_select_item.dart';
-import '../util/multi_select_actions.dart';
-import '../util/multi_select_list_type.dart';
 import 'package:flutter_svg/svg.dart';
+
+import '../util/multi_select_actions.dart';
+import '../util/multi_select_item.dart';
+import '../util/multi_select_list_type.dart';
 
 /// A bottom sheet widget containing either a classic checkbox style list, or a chip style list.
 class MultiSelectBottomSheet<V> extends StatefulWidget
@@ -87,7 +88,7 @@ class MultiSelectBottomSheet<V> extends StatefulWidget
     this.listType,
     this.cancelText,
     this.confirmText,
-    this.confirmHint = "need to add text",
+    this.confirmHint,
     this.searchable,
     this.selectedColor,
     this.initialChildSize,
@@ -488,8 +489,7 @@ class _MultiSelectBottomSheetState<V> extends State<MultiSelectBottomSheet<V>> {
 }
 
 /// Get Widget Height
-double getHeight(
-    {required double height, required BuildContext context}) {
+double getHeight({required double height, required BuildContext context}) {
   double currentHeight = MediaQuery.of(context).size.height * (height / 812);
   return currentHeight;
 }

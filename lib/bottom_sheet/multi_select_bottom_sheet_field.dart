@@ -1,8 +1,9 @@
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
-import '../util/multi_select_list_type.dart';
+
 import '../chip_display/multi_select_chip_display.dart';
 import '../util/multi_select_item.dart';
+import '../util/multi_select_list_type.dart';
 import 'multi_select_bottom_sheet.dart';
 
 /// A customizable InkWell widget that opens the MultiSelectBottomSheet
@@ -37,6 +38,8 @@ class MultiSelectBottomSheetField<V> extends FormField<List<V>> {
 
   /// Text on the confirm button.
   final Text? confirmText;
+
+  final String? confirmHint;
 
   /// Text on the cancel button.
   final Text? cancelText;
@@ -119,6 +122,7 @@ class MultiSelectBottomSheetField<V> extends FormField<List<V>> {
     this.initialValue,
     this.searchable,
     this.confirmText,
+    this.confirmHint,
     this.cancelText,
     this.selectedColor,
     this.initialChildSize,
@@ -166,6 +170,7 @@ class MultiSelectBottomSheetField<V> extends FormField<List<V>> {
                 chipDisplay: chipDisplay,
                 closeSearchIcon: closeSearchIcon,
                 confirmText: confirmText,
+                confirmHint: confirmHint,
                 initialChildSize: initialChildSize,
                 listType: listType,
                 maxChildSize: maxChildSize,
@@ -198,6 +203,7 @@ class _MultiSelectBottomSheetFieldView<V> extends StatefulWidget {
   final void Function(List<V>)? onConfirm;
   final bool? searchable;
   final Text? confirmText;
+  final String? confirmHint;
   final Text? cancelText;
   final MultiSelectListType? listType;
   final Color? selectedColor;
@@ -233,6 +239,7 @@ class _MultiSelectBottomSheetFieldView<V> extends StatefulWidget {
     this.initialValue,
     this.searchable,
     this.confirmText,
+    this.confirmHint = "need to add text",
     this.cancelText,
     this.selectedColor,
     this.initialChildSize,
@@ -268,6 +275,7 @@ class _MultiSelectBottomSheetFieldView<V> extends StatefulWidget {
         initialValue = field.initialValue,
         searchable = field.searchable,
         confirmText = field.confirmText,
+        confirmHint = field.confirmHint,
         cancelText = field.cancelText,
         selectedColor = field.selectedColor,
         initialChildSize = field.initialChildSize,
@@ -307,8 +315,8 @@ class __MultiSelectBottomSheetFieldViewState<V>
   Widget _buildInheritedChipDisplay() {
     List<MultiSelectItem<V>?> chipDisplayItems = [];
     chipDisplayItems = _selectedItems
-        .map((e) => widget.items
-            .firstWhereOrNull((element) => e == element.value))
+        .map((e) =>
+            widget.items.firstWhereOrNull((element) => e == element.value))
         .toList();
     chipDisplayItems.removeWhere((element) => element == null);
     if (widget.chipDisplay != null) {
@@ -386,6 +394,7 @@ class __MultiSelectBottomSheetFieldViewState<V>
             selectedColor: widget.selectedColor,
             listType: widget.listType,
             items: widget.items,
+            confirmHint: widget.confirmHint,
             cancelText: widget.cancelText,
             confirmText: widget.confirmText,
             initialValue: _selectedItems,
