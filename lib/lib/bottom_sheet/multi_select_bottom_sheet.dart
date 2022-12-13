@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../util/multi_select_item.dart';
-import '../util/multi_select_actions.dart';
-import '../util/multi_select_list_type.dart';
 import 'package:flutter_svg/svg.dart';
+
+import '../util/multi_select_actions.dart';
+import '../util/multi_select_item.dart';
+import '../util/multi_select_list_type.dart';
 
 /// A bottom sheet widget containing either a classic checkbox style list, or a chip style list.
 class MultiSelectBottomSheet<V> extends StatefulWidget
@@ -87,7 +88,7 @@ class MultiSelectBottomSheet<V> extends StatefulWidget
     this.listType,
     this.cancelText,
     this.confirmText,
-    this.confirmHint = "need to set text",
+    this.confirmHint,
     this.searchable,
     this.selectedColor,
     this.initialChildSize,
